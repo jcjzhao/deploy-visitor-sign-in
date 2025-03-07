@@ -2,24 +2,17 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
+import os
 from datetime import datetime
+import json
 
-def connect_to_google_sheets():
+def load_config():
+    with open("config.json") as config_file:
+        return json.load(config_file)
+
+def connect_to_google_sheets(creds_path, scope):
     try:
-        creds = {
-            "type": st.secrets["connections"]["gsheets"]["type"],
-            "project_id": st.secrets["connections"]["gsheets"]["project_id"],
-            "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
-            "private_key": st.secrets["connections"]["gsheets"]["private_key"],
-            "client_email": st.secrets["connections"]["gsheets"]["client_email"],
-            "client_id": st.secrets["connections"]["gsheets"]["client_id"],
-            "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
-            "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"]
-        }
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
         return gspread.authorize(creds)
     except Exception as e:
         st.error(f"Failed to connect to Google Sheets: {e}")
@@ -29,11 +22,15 @@ def fetch_addresses(sheet):
     return sheet.col_values(1)
 
 def main():
+    config = load_config()
+
     st.title("Visitor Sign-In Portal")
     st.markdown("Enter the details of the new visitor below.")
 
-    client = connect_to_google_sheets()
-    spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_path = os.path.join("credentials", "credentials.json")
+    client = connect_to_google_sheets(creds_path, scope)
+    spreadsheet_url = config["spreadsheet_url"]
 
     spreadsheet = client.open_by_url(spreadsheet_url)
     addresses_sheet = spreadsheet.get_worksheet(0)
