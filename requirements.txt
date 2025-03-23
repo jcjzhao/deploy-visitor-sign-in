@@ -1,5 +1,5 @@
-streamlit
-st-gsheets-connection
-pandas
+streamlit==1.32.0
 gspread
 oauth2client
+pandas
+datetime
